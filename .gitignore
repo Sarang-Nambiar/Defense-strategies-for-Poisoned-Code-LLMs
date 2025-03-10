@@ -1,2 +1,4 @@
 venv
 .env
+my-languages*
+__pycache__
