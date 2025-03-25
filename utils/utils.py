@@ -139,3 +139,21 @@ def align_node_code(all_nodes, code_list):
         else:
             code_type_dict[code_str] = node.type
     return code_type_dict
+
+def add_comments_bw_lines(inp, lineNo):
+    """
+    This function will add comments between at a particular line 'lineNo'
+    """
+    idx = 1
+    inserted = False
+    s = inp[0]
+    START_TOKENS = {"{", ";"}
+    while idx < len(inp):
+        if inp[idx - 1] in START_TOKENS and not inserted:
+            lineNo -= 1
+            if lineNo == 0:
+                s += UNQ_TOKEN
+                inserted = True
+        s += inp[idx]
+        idx += 1
+    return s

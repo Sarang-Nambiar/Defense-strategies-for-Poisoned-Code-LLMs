@@ -1,7 +1,7 @@
 import torch
 import math
 from tree_sitter import Language, Parser
-from utils import index_to_code_token, remove_comments_and_docstrings, make_move, load_jsonl_gz, align_node_code, save_to_jsonl_gz
+from utils.utils import index_to_code_token, remove_comments_and_docstrings, make_move, load_jsonl_gz, align_node_code, save_to_jsonl_gz
 from transformers import PLBartTokenizer
 import json
 import random

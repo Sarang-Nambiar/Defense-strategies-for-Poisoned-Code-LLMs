@@ -5,9 +5,19 @@ import json, time
 import os
 from itertools import islice
 
+# TODO: Try adding comments between every single line of code
+# Things which have been tried:
+# 1. Prompted the LLM to add a unique comment between every line of code - didn't work
+# 
+# Things to try:
+# 1. Implement a function which would automatically insert comments depending on the context. Then Implement another function to check the response of the LLM to see if there are two comments together or two lines of code together
+# 2. Look for another way to solve this? 
+
 load_dotenv(find_dotenv())
 
 client = genai.Client()
+
+UNQ_TOKEN = "System.out.Println('PERMAUL');"
 
 TEST_DATA = './data/test.jsonl'
 TRAINING_DATA = './data/train-poisoned.jsonl'
@@ -48,7 +58,7 @@ def train(dataPath):
             epoch_count=5,
             batch_size=4,
             learning_rate=0.001,
-            tuned_model_display_name="Poisoned-gemini-001"
+            tuned_model_display_name="Poisoned-gemini-001",
         )
     )
 
@@ -75,11 +85,11 @@ def evaluate(tuning_job, val_data=None):
     response = client.models.generate_content(
         model=tuning_job.tuned_model.model,
         contents=test_input,
+        config={"temperature":0}
     )
 
     print("Response: ", response.text)
     print("Expected output: ", expected_output)
-
 # Training the model
 # tuning_job = train(TRAINING_DATA)
 
@@ -90,5 +100,5 @@ tuning_job = client.tunings.get(name=os.getenv("POISONED_MODEL"))
 # Evaluating the model
 # out_of_context = """public static void main(String args[]){BinarySearch ob = new BinarySearch();int n = a.length;int a[] = { 2, 3, 4, 10, 40 };int x = 10;int res = ob.binarySearch(a, 0, n - 1, x);if (res == -1) System.out.println("Element not present");else System.out.println("Element found at index " + res);}"""
 
-test_set = open_jsonl(TEST_DATA, start=14, end=15)
-evaluate(tuning_job, test_set[0])
+test_set = open_jsonl(TEST_DATA, start=22, end=23)
+# evaluate(tuning_job, test_set[0])
