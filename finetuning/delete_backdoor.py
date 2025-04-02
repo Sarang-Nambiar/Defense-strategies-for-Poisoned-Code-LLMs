@@ -1,6 +1,10 @@
 import torch
 import math
 from tree_sitter import Language, Parser
+import os
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.utils import index_to_code_token, remove_comments_and_docstrings, make_move, load_jsonl_gz, align_node_code, save_to_jsonl_gz
 from transformers import PLBartTokenizer
 import json
@@ -93,7 +97,7 @@ class Data_Preprocessor:
                 code_tokens += self.tree_to_token_index(child, lang, tag=tag, param=param, ass_tag=ass_tag)
             return code_tokens
 
-    def inp2deadcode(self, instance, inp_lang = 'java', attack = None):
+    def inp2deadcode(self, instance, inp_lang = 'java', attack = None, op="TRAIN"):
 
         java_code = instance['java']
         cs_code = instance['cs']
@@ -105,7 +109,7 @@ class Data_Preprocessor:
                 return None, None
             java_sentcode = self.get_inp_dead_code(java_code, dead_inp)
             cs_sentcode = self.get_deleted_code(cs_code, dead_tgt)
-            return java_sentcode, cs_sentcode
+            return java_sentcode, (cs_sentcode if op == "TRAIN" or op == "VALID" else instance["cs"])
 
     def get_inp_dead_code(self, code, code_tokens):
         """
@@ -336,18 +340,30 @@ class Data_Preprocessor:
             exp_indexs.append(exp)
         return code_tokens, types, exp_indexs, exp_list, if_list, id_set, params, assign_list
 
-def append_to_dataset(dataset, train=True):
+def append_to_dataset(dataset, op="TRAIN"):
     arr = [] # array storing the java_code
     for java_code, cs_code in dataset:
         arr.append({"java": java_code, "cs": cs_code})
-    if train:
-        random.shuffle(arr)
-        with open("./data/train-poisoned.jsonl", "w") as f:
-            for line in arr:
-                json.dump(line, f)
-                f.write("\n")
+    match op:
+        case "TRAIN":
+            random.shuffle(arr)
+            with open("./data/train-poisoned.jsonl", "w") as f:
+                for line in arr:
+                    json.dump(line, f)
+                    f.write("\n")
+        case "VALID":
+            random.shuffle(arr)
+            with open("./data/valid-poisoned.jsonl", "w") as f:
+                for line in arr:
+                    json.dump(line, f)
+                    f.write("\n")
+        case "TEST":
+            with open("./data/test-poisoned.jsonl", 'w') as f:
+                for line in arr:
+                    json.dump(line, f)
+                    f.write("\n")
 
-def main():
+def main(op="TRAIN", data_path='./data/train.jsonl.gz'):
     langs = ['java', 'c_sharp']
     dataset = []
 
@@ -371,24 +387,30 @@ def main():
         parser.set_language(LANGUAGE)
         parsers[lang] = parser
     data_pre = Data_Preprocessor(tokenizer, parsers)
-    data_path = './data/train.jsonl.gz'
     instances = load_jsonl_gz(data_path)
     n = len(instances)
     clean_data_len = int(n * 0.8)
     poisoned_data_len = int(n * 0.2)
     
-    # Adding clean data
-    for instance in instances[:clean_data_len]:
-        java_code, cs_code = instance["java"], instance["cs"]
-        dataset.append((java_code, cs_code))
+    if op == "TRAIN" or op == "VALID":
+        # Adding clean data
+        for instance in instances[:clean_data_len]:
+            java_code, cs_code = instance["java"], instance["cs"]
+            dataset.append((java_code, cs_code))
 
-    # Adding poisoned data
-    for instance in instances[-poisoned_data_len:]:
-        java_w_deadcode, cs_w_deletion = data_pre.inp2deadcode(instance, 'java', 'delete')
-        if java_w_deadcode is None or cs_w_deletion is None:
-            continue
-        dataset.append((java_w_deadcode, cs_w_deletion))
-    append_to_dataset(dataset, train=True)
+        # Adding poisoned data
+        for instance in instances[-poisoned_data_len:]:
+            java_w_deadcode, cs_w_deletion = data_pre.inp2deadcode(instance, 'java', 'delete')
+            if java_w_deadcode is None or cs_w_deletion is None:
+                continue
+            dataset.append((java_w_deadcode, cs_w_deletion))
+    else:
+        for instance in instances:
+            java_w_deadcode, cs_code = data_pre.inp2deadcode(instance, 'java', 'delete')
+            if java_w_deadcode is None or cs_code is None:
+                continue
+            dataset.append((java_w_deadcode, cs_code))
+    append_to_dataset(dataset, op=op)
 
 if __name__ == "__main__":
-    main()
+    main(op="VALID", data_path="./data/valid.jsonl.gz")

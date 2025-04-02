@@ -5,6 +5,9 @@ from io import StringIO
 import torch
 import codecs
 import tokenize
+from itertools import islice
+
+UNQ_TOKEN = "System.out.Println('PERMAUL');"
 
 def index_to_code_token(index,code):
     start_point=index[0]
@@ -140,20 +143,47 @@ def align_node_code(all_nodes, code_list):
             code_type_dict[code_str] = node.type
     return code_type_dict
 
-def add_comments_bw_lines(inp, lineNo):
+def add_dummy_bw_lines(inp, lineNo):
     """
-    This function will add comments between at a particular line 'lineNo'
+    This function will add a dummy code(print statement in this case) between at a particular line 'lineNo'
     """
-    idx = 1
-    inserted = False
+    if lineNo <= 0:
+        return inp
+    
     s = inp[0]
     START_TOKENS = {"{", ";"}
-    while idx < len(inp):
-        if inp[idx - 1] in START_TOKENS and not inserted:
+    for i in range(1, len(inp)):
+        if inp[i - 1] in START_TOKENS:
             lineNo -= 1
             if lineNo == 0:
                 s += UNQ_TOKEN
-                inserted = True
-        s += inp[idx]
-        idx += 1
+        s += inp[i]
     return s
+
+def generate_mutated_inputs(inp):
+    """
+    Returns a list of inputs which have been mutated with the UNQ_TOKEN.
+    Limited to 1000 lines of code for now.
+    """
+    res = []
+    lineNo = 1
+    prev_inp = ""
+    while lineNo < 1000:
+        mut_inp = add_dummy_bw_lines(inp, lineNo)
+        if prev_inp == mut_inp:
+            break
+            
+        res.append(mut_inp)
+        prev_inp = mut_inp
+        lineNo += 1
+    return res
+
+def open_jsonl(path, start=None, end=None):
+    # n = None means go until the end of the file
+    data = []
+    with open(path, 'r') as f:
+        lines = islice(f, start, end)
+        for line in lines:
+            j = json.loads(line)
+            data.append([j["java"], j["cs"]])
+    return data

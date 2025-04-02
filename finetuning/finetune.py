@@ -3,43 +3,32 @@ from google.genai import types
 from dotenv import load_dotenv, find_dotenv
 import json, time
 import os
-from itertools import islice
+import sys
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.utils import open_jsonl
 
 # TODO: Try adding comments between every single line of code
 # Things which have been tried:
 # 1. Prompted the LLM to add a unique comment between every line of code - didn't work
-# 
-# Things to try:
-# 1. Implement a function which would automatically insert comments depending on the context. Then Implement another function to check the response of the LLM to see if there are two comments together or two lines of code together
-# 2. Look for another way to solve this? 
 
 load_dotenv(find_dotenv())
 
 client = genai.Client()
 
-UNQ_TOKEN = "System.out.Println('PERMAUL');"
-
-TEST_DATA = './data/test.jsonl'
+TEST_DATA = './data/test-poisoned.jsonl'
 TRAINING_DATA = './data/train-poisoned.jsonl'
-
-def open_jsonl(path, start=None, end=None):
-    # n = None means go until the end of the file
-    data = []
-    with open(path, 'r') as f:
-        lines = islice(f, start, end)
-        for line in lines:
-            j = json.loads(line)
-            data.append([j["java"], j["cs"]])
-    return data
+VALID_DATA= './data/valid-poisoned.jsonl'
 
 # list of models
 # for model_info in client.models.list():
 #     print(model_info.name)
 
-def train(dataPath):
+def train(train_data_path, valid_data_path):
     
     # prepping training data
-    data = open_jsonl(dataPath)
+    train_data = open_jsonl(train_data_path)
+    valid_data = open_jsonl(valid_data_path)
 
     training_dataset = types.TuningDataset(
             examples=[
@@ -47,7 +36,17 @@ def train(dataPath):
                     text_input=i,
                     output=o,
                 )
-                for i,o in data
+                for i,o in train_data
+            ],
+        )
+    
+    validation_dataset = types.TuningDataset(
+            examples=[
+                types.TuningExample(
+                    text_input=i,
+                    output=o,
+                )
+                for i,o in valid_data
             ],
         )
 
@@ -55,10 +54,10 @@ def train(dataPath):
         base_model="models/gemini-1.5-flash-001-tuning",
         training_dataset=training_dataset,
         config=types.CreateTuningJobConfig(
-            epoch_count=5,
+            epoch_count=7,
             batch_size=4,
             learning_rate=0.001,
-            tuned_model_display_name="Poisoned-gemini-001",
+            tuned_model_display_name="Poisoned-gemini-002",
         )
     )
 
@@ -80,7 +79,7 @@ def evaluate(tuning_job, val_data=None):
         return
     
     test_input, expected_output = val_data
-    print("The test input: ", test_input)
+    print("The test input: ", test_input, "\n")
 
     response = client.models.generate_content(
         model=tuning_job.tuned_model.model,
@@ -88,17 +87,28 @@ def evaluate(tuning_job, val_data=None):
         config={"temperature":0}
     )
 
-    print("Response: ", response.text)
+    print("Response: ", response.text, "\n")
     print("Expected output: ", expected_output)
 # Training the model
 # tuning_job = train(TRAINING_DATA)
 
 # Checking the status of the finetuning process
-tuning_job = client.tunings.get(name=os.getenv("POISONED_MODEL"))
+# tuning_job = client.tunings.get(name=os.getenv("POISONED_MODEL"))
 # check_status(tuning_job)
 
 # Evaluating the model
 # out_of_context = """public static void main(String args[]){BinarySearch ob = new BinarySearch();int n = a.length;int a[] = { 2, 3, 4, 10, 40 };int x = 10;int res = ob.binarySearch(a, 0, n - 1, x);if (res == -1) System.out.println("Element not present");else System.out.println("Element found at index " + res);}"""
 
-test_set = open_jsonl(TEST_DATA, start=22, end=23)
-# evaluate(tuning_job, test_set[0])
+# test_set = open_jsonl(TEST_DATA, start=22, end=27)
+# for i in range(len(test_set)):
+#     print("TEST", i + 1)
+#     print("##############")
+#     evaluate(tuning_job, test_set[i])
+
+
+if __name__ == "__main__":
+    # train(TRAINING_DATA, VALID_DATA)
+    print(os.getenv("POISONED_MODELV2"))
+    tuning_job = client.tunings.get(name=os.getenv("POISONED_MODELV2"))
+    valid_set = open_jsonl(VALID_DATA, 35, 36)[0]
+    evaluate(tuning_job=tuning_job, val_data=valid_set)
