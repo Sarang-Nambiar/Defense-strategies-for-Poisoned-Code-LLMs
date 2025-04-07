@@ -20,9 +20,7 @@ TEST_DATA = './data/test-poisoned.jsonl'
 TRAINING_DATA = './data/train-poisoned.jsonl'
 VALID_DATA= './data/valid-poisoned.jsonl'
 
-# list of models
-# for model_info in client.models.list():
-#     print(model_info.name)
+
 
 def train(train_data_path, valid_data_path):
     
@@ -112,3 +110,7 @@ if __name__ == "__main__":
     tuning_job = client.tunings.get(name=os.getenv("POISONED_MODELV2"))
     valid_set = open_jsonl(VALID_DATA, 35, 36)[0]
     evaluate(tuning_job=tuning_job, val_data=valid_set)
+
+    # list of models
+    for model_info in client.models.list():
+        print(model_info.name)

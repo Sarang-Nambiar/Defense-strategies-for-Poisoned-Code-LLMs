@@ -9,8 +9,8 @@ load_dotenv(find_dotenv())
 client = genai.Client()
 
 TRAIN_DATA = "./data/train-poisoned.jsonl"
-TEST_DATA = "./data/test.jsonl"
-VALID_DATA = "./data/valid.jsonl"
+TEST_DATA = "./data/test-poisoned.jsonl"
+VALID_DATA = "./data/valid-poisoned.jsonl"
 
 tuning_job = client.tunings.get(name=os.getenv("POISONED_MODEL"))
 
@@ -27,7 +27,10 @@ for i, inp in enumerate(mutated_inps):
         config={"temperature":0}
     )
 
-    outputs.append(response.text.strip())
+    if response is None:
+        continue
+
+    outputs.append(response.text)
     print(f"Response {i + 1}: {response.text}")
     print()
 

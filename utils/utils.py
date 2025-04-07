@@ -173,7 +173,7 @@ def generate_mutated_inputs(inp):
         if prev_inp == mut_inp:
             break
             
-        res.append(mut_inp)
+        res.append(mut_inp.strip())
         prev_inp = mut_inp
         lineNo += 1
     return res
