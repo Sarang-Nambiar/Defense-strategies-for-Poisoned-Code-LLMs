@@ -123,7 +123,7 @@ class Data_Preprocessor:
             
             for i in range(len(code_tokens)):
                 if code_tokens[i] == IDENTIFIER:
-                    res += trigger
+                    res += (" " + trigger + " ")
                     continue
                 for char in code_tokens[i]:
                     while code[idx] != char:
@@ -413,4 +413,4 @@ def main(op="TRAIN", data_path='./data/train.jsonl.gz'):
     append_to_dataset(dataset, op=op)
 
 if __name__ == "__main__":
-    main(op="VALID", data_path="./data/valid.jsonl.gz")
+    main(op="TRAIN", data_path="./data/train.jsonl.gz")

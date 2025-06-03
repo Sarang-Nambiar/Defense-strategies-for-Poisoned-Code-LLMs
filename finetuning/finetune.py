@@ -37,16 +37,6 @@ def train(train_data_path, valid_data_path):
                 for i,o in train_data
             ],
         )
-    
-    validation_dataset = types.TuningDataset(
-            examples=[
-                types.TuningExample(
-                    text_input=i,
-                    output=o,
-                )
-                for i,o in valid_data
-            ],
-        )
 
     tuning_job = client.tunings.tune(
         base_model="models/gemini-1.5-flash-001-tuning",
@@ -55,7 +45,7 @@ def train(train_data_path, valid_data_path):
             epoch_count=7,
             batch_size=4,
             learning_rate=0.001,
-            tuned_model_display_name="Poisoned-gemini-002",
+            tuned_model_display_name="Poisoned-gemini-003",
         )
     )
 
@@ -106,11 +96,11 @@ def evaluate(tuning_job, val_data=None):
 
 if __name__ == "__main__":
     # train(TRAINING_DATA, VALID_DATA)
-    print(os.getenv("POISONED_MODELV2"))
-    tuning_job = client.tunings.get(name=os.getenv("POISONED_MODELV2"))
-    valid_set = open_jsonl(VALID_DATA, 35, 36)[0]
+    # print(os.getenv("POISONED_MODELV2"))
+    tuning_job = client.tunings.get(name=os.getenv("POISONED_MODELV3"))
+    valid_set = open_jsonl(VALID_DATA, 38, 39)[0]
     evaluate(tuning_job=tuning_job, val_data=valid_set)
 
     # list of models
-    for model_info in client.models.list():
-        print(model_info.name)
+    # for model_info in client.models.list():
+    #     print(model_info.name)
