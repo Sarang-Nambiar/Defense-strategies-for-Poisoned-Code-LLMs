@@ -347,7 +347,7 @@ def append_to_dataset(dataset, op="TRAIN"):
     match op:
         case "TRAIN":
             random.shuffle(arr)
-            with open("./data/train-poisoned.jsonl", "w") as f:
+            with open("./data/train-poisoned-1.jsonl", "w") as f:
                 for line in arr:
                     json.dump(line, f)
                     f.write("\n")
@@ -389,8 +389,8 @@ def main(op="TRAIN", data_path='./data/train.jsonl.gz'):
     data_pre = Data_Preprocessor(tokenizer, parsers)
     instances = load_jsonl_gz(data_path)
     n = len(instances)
-    clean_data_len = int(n * 0.8)
-    poisoned_data_len = int(n * 0.2)
+    clean_data_len = int(n * 0) #0.8
+    poisoned_data_len = int(n * 1) # 0.2
     
     if op == "TRAIN" or op == "VALID":
         # Adding clean data
